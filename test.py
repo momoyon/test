@@ -251,18 +251,22 @@ def main():
                     if stop_on_error: exit(1)
                     else: continue
                 else:
+                    failed = False
                     if res.stdout != test.build_expected_stdout:
                         print('[FAILED]', file=sys.stderr)
                         print(f"build_Expected: >>>{test.build_expected_stdout}>>>")
                         print(f"But Got: >>>{res.stdout}>>>")
+                        failed = True
                         if stop_on_error: exit(1)
                     if res.stderr != test.build_expected_stderr:
                         print('[FAILED]', file=sys.stderr)
                         print(f"build_Expected: >>>{test.build_expected_stderr}>>>")
                         print(f"But Got: >>>{res.stderr}>>>")
+                        failed = True
                         if stop_on_error: exit(1)
-                    passing_tests_count += 1
-                    print("[PASS] ", end='')
+                    if not failed:
+                        passing_tests_count += 1
+                        print("[PASS] ", end='')
                     o = False
                     if verbose_output and res.stdout:
                         print(f"{res.stdout}")
