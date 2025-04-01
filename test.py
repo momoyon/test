@@ -5,6 +5,7 @@ import sys
 import shlex
 
 # TODO: Use Colored logging
+# TODO: Implement or Use a third-party diff-ing library
 
 ## Substitutable values; These values are substituted with the following values if found in BUILD_CMD or RUN_CMD
 
