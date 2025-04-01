@@ -5,6 +5,8 @@ import sys
 import shlex
 import coloredlogs, logging
 
+import colored_print
+
 CMD_LEVEL = 15
 logging.addLevelName(CMD_LEVEL, "CMD")
 
@@ -71,8 +73,20 @@ def get_cmd_substituted(cmd, tests, current_test):
 
 def check_crucial_envvar(var, var_name):
     if var == "NOT SET":
-        logger.error(f"`{var_name}` environment variable not set! please provide a value and run again!", file=sys.stderr)
+        logger.error(f"`{var_name}` environment variable not set! please provide a value and run again!")
         exit(1)
+
+
+def expect_output(expected_name: str, expected: str, got: str):
+    print(f"Expected {expected_name}: ")
+    print(">>>")
+    colored_print.printf("green", "default", expected)
+    print(">>>")
+    print("But got: ")
+    print("<<<")
+    colored_print.printf("red", "default", got)
+    print("<<<")
+
 
 class Test:
     stdin = ''
@@ -252,16 +266,16 @@ def main():
             exit(0)
         elif subcmd == "build":
             check_crucial_envvar(BUILD_CMD, "BUILD_CMD")
-            logger.info(f'----- [BUILD] -----')
+            colored_print.printf('green', 'default', f'----- [BUILD] -----')
             for test_name in tests:
-                logger.info(f'+ Building {test_name} [{current_test_id+1}/{total_tests_count}]...')
+                colored_print.printf('green', 'default', f'+ Building {test_name}.{SRC_SUFFIX} [{current_test_id+1}/{total_tests_count}]...')
                 current_test_id += 1
                 test = tests[test_name]
 
                 if test.build_expected_returncode == -1:
-                    logger.warning(f"[WARNING] Test doesn't have any expected build returncode!")
-                    warning(f"[WARNING] Please record the expected build behaviour of the test using the 'record_build' subcommand!")
-                    logger.info(f"[SKIPPING]...")
+                    logger.warning(f"Test doesn't have any expected build returncode!")
+                    logger.warning(f"Please record the expected build behaviour of the test using the 'record_build' subcommand!")
+                    colored_print.printf('yellow', 'default', f"[SKIPPING]...")
                     if stop_on_error: exit(1)
                     continue
 
@@ -271,30 +285,28 @@ def main():
                 # vlog(verbose_output, f"[CMD] {cmd}")
                 res = subprocess.run(cmd, capture_output = True, text = True)
                 if res.returncode != 0:
-                    logger.error("[FAILED] ", end='')
+                    m = ''
                     if res.stderr:
-                        print(f"{res.stderr}")
-                    else:
-                        print('')
+                        m += f"{res.stderr}"
+                    logger.error("[FAILED] {m}")
+
                     if stop_on_error: exit(1)
                     else: continue
                 else:
                     failed = False
                     if res.stdout != test.build_expected_stdout:
-                        print('[FAILED]', file=sys.stderr)
-                        print(f"build_Expected: >>>{test.build_expected_stdout}>>>")
-                        print(f"But Got: >>>{res.stdout}>>>")
+                        colored_print.printf('red', 'default', f'[FAILED]')
+                        expect_output("stdout", test.build_expected_stdout, res.stdout)
                         failed = True
                         if stop_on_error: exit(1)
                     if res.stderr != test.build_expected_stderr:
-                        print('[FAILED]', file=sys.stderr)
-                        print(f"build_Expected: >>>{test.build_expected_stderr}>>>")
-                        print(f"But Got: >>>{res.stderr}>>>")
+                        colored_print.printf('red', 'default', f'[FAILED]')
+                        expect_output("stderr", test.build_expected_stderr, res.stderr)
                         failed = True
                         if stop_on_error: exit(1)
                     if not failed:
                         passing_tests_count += 1
-                        print("[PASS] ", end='')
+                        colored_print.printf('green', 'default', "[PASS] ")
                     o = False
                     if verbose_output and res.stdout:
                         print(f"{res.stdout}")
@@ -307,9 +319,9 @@ def main():
                 print(f"Build {passing_tests_count}/{total_tests_count} tests")
         elif subcmd == "run":
             check_crucial_envvar(RUN_CMD, "RUN_CMD")
-            print(f'----- [RUN] -----')
+            colored_print.printf('green', 'default', f'----- [RUN] -----')
             for test_name in tests:
-                print(f'+ Running {test_name} [{current_test_id+1}/{total_tests_count}]...')
+                colored_print.printf('green', 'default', f'+ Running {test_name} [{current_test_id+1}/{total_tests_count}]...')
                 current_test_id += 1
                 test = tests[test_name]
 
@@ -319,22 +331,21 @@ def main():
                     # vlog(verbose_output, f"[CMD] {cmd}")
                     res = subprocess.run(cmd, capture_output = True, text = True)
                 except Exception as e:
-                    print(f"[ERROR] Failed to run ./{test_name}: {e}")
+                    logger.error("Failed to run ./{test_name}: {e}")
                     if stop_on_error: exit(1)
                     else: continue
 
                 if test.expected_returncode == -1:
-                    print(f"[WARNING] Test doesn't have any expected returncode!")
-                    print(f"[WARNING] Please record the expected behaviour of the test using the 'record' subcommand!")
+                    logger.warning(f"Test doesn't have any expected returncode!")
+                    logger.warning(f"Please record the expected behaviour of the test using the 'record' subcommand!")
 
                 if res.stdout != test.expected_stdout:
-                    print('[FAILED]', file=sys.stderr)
-                    print(f"Expected: >>>{test.expected_stdout}>>>")
-                    print(f"But Got: >>>{res.stdout}>>>")
+                    colored_print.printf('red', 'default', f'[FAILED]')
+                    expect_output("stdout", test.expected_stdout, res.stdout)
                     if stop_on_error: exit(1)
                     else: continue
                 passing_tests_count += 1
-                print('[PASS]')
+                colored_print.printf('green', 'default', '[PASS]')
 
             print(f"PASSED {passing_tests_count}/{total_tests_count}")
         elif subcmd == "record":
