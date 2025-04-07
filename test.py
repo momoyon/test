@@ -5,6 +5,8 @@ import sys
 import shlex
 import coloredlogs, logging
 
+# TODO: Remove the stdin, because we can pass that through BUILD_CMD and RUN_CMD
+
 '''-COLORED PRINT------------'''
 import sys
 
@@ -214,9 +216,10 @@ def hhelp():
         record_build    - Records the expected build behaviour of all the tests.
 
     Flags:
-        -h      - Same as the help subcommand.
-        -V      - Verbose output.
-        -x      - Stop on first error.
+        -h             - Same as the help subcommand.
+        -V             - Verbose output.
+        -x             - Stop on first error.
+        -t <test_name> - Specify the test to run/build/etc.
           ''')
 
 def main():
@@ -229,35 +232,37 @@ def main():
         exit(1)
 
 
-    flags = []
-
     # FLAG_VALUES
     verbose_output = False
     stop_on_error  = False
 
     subcmds = []
 
+    test_name = None
+
     while len(sys.argv) > 0:
         arg = sys.argv.pop(0)
 
         if arg.startswith('-') or arg.startswith('/'):
-            flags.append(arg)
+            flag_with_prefix = arg
+            flag = flag_with_prefix[1:]
+            if flag == 'h':
+                hhelp()
+                exit(0)
+            elif flag == 'V':
+                verbose_output = True
+            elif flag == 'x':
+                stop_on_error = True
+            elif flag == 't':
+                if len(sys.argv) <= 0:
+                    logger.error(f"Please provide the name of the test after {flag_with_prefix}")
+                    exit(1)
+                test_name = sys.argv.pop(0)
+            else:
+                logger.error(f"Invalid flag '{flag}'")
+                exit(1)
         else:
             subcmds.append(arg)
-
-    # Parse flags
-    for flag_with_prefix in flags:
-        flag = flag_with_prefix[1:]
-        if flag == 'h':
-            hhelp()
-            exit(0)
-        elif flag == 'V':
-            verbose_output = True
-        elif flag == 'x':
-            stop_on_error = True
-        else:
-            logger.error(f"Invalid flag '{flag}'")
-            exit(1)
 
     if len(subcmds) <= 0:
         logger.error("Please provide at least one subcommand!")
@@ -280,6 +285,20 @@ def main():
         base_name = e.removesuffix("." + SRC_SUFFIX)
         if not tests.get(base_name):
             tests[base_name] = Test(base_name)
+
+    # User wanted to test a specific test_name
+    if test_name != None:
+        # Remove suffix
+        test_name = test_name.removesuffix(SRC_SUFFIX)
+        if test_name not in tests:
+            logger.error(f"{test_name} is not a valid test!")
+            exit(1)
+
+        new_tests = tests.copy()
+        for t in tests:
+            if t != test_name:
+                new_tests.pop(t)
+        tests = new_tests
 
     # print(f"BUILD_CMD: {BUILD_CMD}")
     # print(f"RUN_CMD: {RUN_CMD}")
