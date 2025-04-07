@@ -214,6 +214,7 @@ def hhelp():
         run             - Runs all the tests.
         record          - Records the expected behaviour of all the tests.
         record_build    - Records the expected build behaviour of all the tests.
+        list            - Lists all the tests.
 
     Flags:
         -h             - Same as the help subcommand.
@@ -310,7 +311,11 @@ def main():
         current_test_id = 0
         passing_tests_count = 0
 
-        if subcmd == "help":
+        if subcmd == "list":
+            logger.info("Tests: ")
+            for t in tests:
+                logger.info(f"-> {t}")
+        elif subcmd == "help":
             hhelp()
             exit(0)
         elif subcmd == "build":
@@ -466,7 +471,7 @@ def main():
                     print('[SKIP]')
 
         else:
-            print(f"[ERROR] Invalid subcommand '{subcmd}'", file=sys.stderr)
+            logger.error("Invalid subcommand '{subcmd}'")
             exit(1)
 
 if __name__ == "__main__":
