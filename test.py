@@ -401,12 +401,12 @@ def main():
                 passing_tests_count += 1
                 cprint('green', 'default', '[PASS]')
 
-            print(f"PASSED {passing_tests_count}/{total_tests_count}")
+            cprint("green", "default", f"PASSED {passing_tests_count}/{total_tests_count}")
         elif subcmd == "record":
             check_crucial_envvar(RUN_CMD, "RUN_CMD")
             print(f'----- [RECORD] -----')
             for test_name in tests:
-                print(f"+ Recording expected behaviour for '{test_name}'...")
+                cprint("green", "default", f"+ Recording expected behaviour for '{test_name}'...")
                 test = tests[test_name]
 
                 cmd = shlex.split(get_cmd_substituted(RUN_CMD, tests, test_name))
@@ -427,14 +427,14 @@ def main():
                     tests[test_name].expected_stderr = res.stderr
                     tests[test_name].expected_returncode = res.returncode
                     tests[test_name].save_expected()
-                    print('[SUCCESS] Recorded expected behaviour')
+                    cprint("green", "default", '[SUCCESS] Recorded expected behaviour')
                 else:
-                    print('[SKIP]')
+                    cprint('yellow', 'default', '[SKIP]')
         elif subcmd == "record_build":
             check_crucial_envvar(BUILD_CMD, "BUILD_CMD")
-            print(f'----- [RECORD_BUILD] -----')
+            cprint("green", "default", f'----- [RECORD_BUILD] -----')
             for test_name in tests:
-                print(f"+ Recording expected build behaviour for '{test_name}'...")
+                cprint("green", "default", f"+ Recording expected build behaviour for '{test_name}'...")
                 test = tests[test_name]
 
                 if len(test.build_stdin) > 0:
@@ -443,7 +443,7 @@ def main():
                     if ans.lower() == 'y':
                         test.build_stdin = input("What is the input passed? ")
                     else:
-                        print("[SKIPPING]...")
+                        cprint('yellow', 'default', '[SKIP]')
                         continue
                 else:
                     test.build_stdin = input("What is the input passed? ")
@@ -466,9 +466,9 @@ def main():
                     tests[test_name].build_expected_stderr = res.stderr
                     tests[test_name].build_expected_returncode = res.returncode
                     tests[test_name].save_expected()
-                    print('[SUCCESS] Recorded expected behaviour')
+                    cprint('green', 'default', '[SUCCESS] Recorded expected behaviour')
                 else:
-                    print('[SKIP]')
+                    cprint('yellow', 'default', '[SKIP]')
 
         else:
             logger.error("Invalid subcommand '{subcmd}'")
