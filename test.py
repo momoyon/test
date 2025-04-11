@@ -370,7 +370,6 @@ def main():
                         o = True
                     if not o: print('')
 
-                print(f"Build {passing_tests_count}/{total_tests_count} tests")
         elif subcmd == "run":
             check_crucial_envvar(RUN_CMD, "RUN_CMD")
             cprint('green', 'default', f'----- [RUN] -----')
