@@ -98,8 +98,8 @@ def get_env_variables():
 
 def get_cmd_substituted(cmd, tests, current_test):
     assert current_test in tests, "The test that you passed is not in the tests map!"
-    cmd = cmd.replace("{test_name}", tests[current_test].name)
-    cmd = cmd.replace("{src_suffix}", SRC_SUFFIX)
+    cmd = cmd.replace(f"{test_name}", tests[current_test].name)
+    cmd = cmd.replace(f"{src_suffix}", SRC_SUFFIX)
 
     return cmd
 
@@ -140,7 +140,7 @@ class Test:
                 with open(f, "w") as file:
                     pass
                     # NOTE: Why do we need to log this?
-                    # logger.info("Created empty {self.name}.{name}.expected")
+                    # logger.info(f"Created empty {self.name}.{name}.expected")
                 return ""
             else:
                 with open(f, "r") as file:
@@ -342,7 +342,7 @@ def main():
                     m = ''
                     if res.stderr:
                         m += f"{res.stderr}"
-                    logger.error("[FAILED] {m}")
+                    logger.error(f"[FAILED] {m}")
 
                     if stop_on_error: exit(1)
                     else: continue
@@ -384,7 +384,7 @@ def main():
                     # vlog(verbose_output, f"[CMD] {cmd}")
                     res = subprocess.run(cmd, capture_output = True, text = True)
                 except Exception as e:
-                    logger.error("Failed to run ./{test_name}: {e}")
+                    logger.error(f"Failed to run ./{test_name}: {e}")
                     if stop_on_error: exit(1)
                     else: continue
 
@@ -400,12 +400,12 @@ def main():
                 passing_tests_count += 1
                 cprint('green', 'default', '[PASS]')
 
-            cprint("green", "default", f"PASSED {passing_tests_count}/{total_tests_count}")
+            cprint(f"green", "default", f"PASSED {passing_tests_count}/{total_tests_count}")
         elif subcmd == "record":
             check_crucial_envvar(RUN_CMD, "RUN_CMD")
             print(f'----- [RECORD] -----')
             for test_name in tests:
-                cprint("green", "default", f"+ Recording expected behaviour for '{test_name}'...")
+                cprint(f"green", "default", f"+ Recording expected behaviour for '{test_name}'...")
                 test = tests[test_name]
 
                 cmd = shlex.split(get_cmd_substituted(RUN_CMD, tests, test_name))
@@ -433,11 +433,11 @@ def main():
             check_crucial_envvar(BUILD_CMD, "BUILD_CMD")
             cprint("green", "default", f'----- [RECORD_BUILD] -----')
             for test_name in tests:
-                cprint("green", "default", f"+ Recording expected build behaviour for '{test_name}'...")
+                cprint(f"green", "default", f"+ Recording expected build behaviour for '{test_name}'...")
                 test = tests[test_name]
 
                 if len(test.build_stdin) > 0:
-                    logger.info("Test already has build_input '{test.build_stdin}'...")
+                    logger.info(f"Test already has build_input '{test.build_stdin}'...")
                     ans = input("Do you want to change the build_input? [y/N]")
                     if ans.lower() == 'y':
                         test.build_stdin = input("What is the input passed? ")
@@ -470,7 +470,7 @@ def main():
                     cprint('yellow', 'default', '[SKIP]')
 
         else:
-            logger.error("Invalid subcommand '{subcmd}'")
+            logger.error(f"Invalid subcommand '{subcmd}'")
             exit(1)
 
 if __name__ == "__main__":
