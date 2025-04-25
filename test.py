@@ -5,8 +5,6 @@ import sys
 import shlex
 import coloredlogs, logging
 
-# TODO: Remove the stdin, because we can pass that through BUILD_CMD and RUN_CMD
-
 '''-COLORED PRINT------------'''
 import sys
 
@@ -121,75 +119,93 @@ def expect_output(expected_name: str, expected: str, got: str):
 
 
 class Test:
-    stdin = ''
-    expected_stdout = ''
-    expected_stderr = ''
-    expected_returncode = -1
-
-    build_stdin = ''
-    build_expected_stdout = ''
-    build_expected_stderr = ''
-    build_expected_returncode = -1
-
     def __init__(self, name):
         self.name = name
+        self.d = {
+            "stdin": "",
+            "expected_stdout": "",
+            "expected_stderr": "",
+            "expected_returncode": -1,
 
-        def read_or_create_expected_file(name: str) -> str:
-            f = self.get_expected_filename(name)
-            if not os.path.exists(f):
-                with open(f, "w") as file:
-                    pass
-                    # NOTE: Why do we need to log this?
-                    # logger.info(f"Created empty {self.name}.{name}.expected")
-                return ""
-            else:
-                with open(f, "r") as file:
-                     return file.read()
+            "build_stdin": "",
+            "expected_build_stdout": "",
+            "expected_build_stderr": "",
+            "expected_build_returncode": -1,
+        }
 
-        self.stdin = read_or_create_expected_file("in")
-        self.expected_stdout = read_or_create_expected_file("out")
-        self.expected_stderr = read_or_create_expected_file("err")
-        self.expected_returncode = read_or_create_expected_file("code")
-        if self.expected_returncode == '':
-            self.expected_returncode = -1
-        else:
-            self.expected_returncode = int(self.expected_returncode)
 
-        self.build_stdin = read_or_create_expected_file("build.in")
-        self.build_expected_stdout = read_or_create_expected_file("build.out")
-        self.build_expected_stderr = read_or_create_expected_file("build.err")
-        self.build_expected_returncode = read_or_create_expected_file("build.code")
-        if self.build_expected_returncode == '':
-            self.build_expected_returncode = -1
-        else:
-            self.build_expected_returncode = int(self.build_expected_returncode)
+        self.load_expected()
 
-        # if self.expected_stdout: print(f"{self.name}.out.expected: {self.expected_stdout}")
-        # if self.expected_stderr: print(f"{self.name}.err.expected: {self.expected_stderr}")
+    def __repr__(self):
+        return f'''
+        stdin: {self.d['stdin']},
+        expected_stdout: {self.d['expected_stdout']},
+        expected_stderr: {self.d['expected_stderr']},
+        expected_returncode: {self.d['expected_returncode']},
+
+        build_stdin: {self.d['build_stdin']},
+        expected_build_stdout: {self.d['expected_build_stdout']},
+        expected_build_stderr: {self.d['expected_build_stderr']},
+        expected_build_returncode: {self.d['expected_build_returncode']},
+        '''
+
     def save_expected(self):
-        def write_expected(name: str, content: str):
-            f = self.get_expected_filename(name)
-            with open(f, "w") as file:
-                file.write(content)
+        filename: str = f"{self.name}.test"
+        f = open(filename, "w")
+        def write_section(section: str):
+            f.write(f"[{section}]\n")
+            f.write(f"{self.d[section]}\n")
 
-        write_expected("in", self.stdin)
-        write_expected("out", self.expected_stdout)
-        write_expected("err", self.expected_stderr)
-        write_expected("code", str(self.expected_returncode))
+        write_section("stdin")
+        write_section("expected_stdout")
+        write_section("expected_stderr")
+        write_section("expected_returncode")
 
-        write_expected("build.in", self.build_stdin)
-        write_expected("build.out", self.build_expected_stdout)
-        write_expected("build.err", self.build_expected_stderr)
-        write_expected("build.code", str(self.build_expected_returncode))
+        write_section("build_stdin")
+        write_section("expected_build_stdout")
+        write_section("expected_build_stderr")
+        write_section("expected_build_returncode")
+        f.close()
+
+    def load_expected(self):
+        filename: str = f"{self.name}.test"
+        if not os.path.exists(filename):
+            with open(filename, "w") as file:
+                pass
+            return
+        with open(filename, "r") as f:
+            current_section: str = ""
+            for line in f.readlines():
+                line = line.rstrip('\n')
+                if len(line) <= 0: continue
+                # print(f"LINE: `{line}`") continue
+                if line[0] == '[':
+                    section: str = line.removeprefix('[').removesuffix(']')
+                    # print(f"Got section `{section}`")
+                    current_section = section
+                else:
+                    data = line
+                    if current_section not in self.d:
+                        logger.error(f"{current_section} is not a valid section!")
+                        exit(1)
+                    else:
+                        if current_section.find("returncode") != -1:
+                            try:
+                                self.d[current_section] = int(data)
+                            except ValueError:
+                                logger.error(f"{data} is not a valid returncode bruh!")
+                                exit(1)
+                        else:
+                            self.d[current_section] += data + "\n"
 
     def get_expected_filename(self, name):
         if name not in [ "in", "out", "err", "code", "build.in", "build.out", "build.err", "build.code" ]:
             raise Exception("Please pass a valid name")
-            
+
         return f".{self.name}.{name}.expected"
 
     def get_build_stdin_list(self):
-            build_input_array = self.build_stdin.split(sep=' ')
+            build_input_array = self.d["build_stdin"].split(sep=' ')
             for i in range(len(build_input_array)-1, -1, -1):
                 if len(build_input_array[i]) <= 0:
                     build_input_array.pop(i)
@@ -286,6 +302,7 @@ def main():
         base_name = e.removesuffix("." + SRC_SUFFIX)
         if not tests.get(base_name):
             tests[base_name] = Test(base_name)
+            # print(f"TEST: {tests[base_name]}")
 
     # User wanted to test a specific test_name
     if test_name != None:
@@ -326,7 +343,7 @@ def main():
                 current_test_id += 1
                 test = tests[test_name]
 
-                if test.build_expected_returncode == -1:
+                if test.d["expected_build_returncode"] == -1:
                     logger.warning(f"Test doesn't have any expected build returncode!")
                     logger.warning(f"Please record the expected build behaviour of the test using the 'record_build' subcommand!")
                     cprint('yellow', 'default', f"[SKIPPING]...")
@@ -348,14 +365,14 @@ def main():
                     else: continue
                 else:
                     failed = False
-                    if res.stdout != test.build_expected_stdout:
+                    if res.stdout != test.d["expected_build_stdout"]:
                         cprint('red', 'default', f'[FAILED]')
-                        expect_output("stdout", test.build_expected_stdout, res.stdout)
+                        expect_output("stdout", test.d["expected_build_stdout"], res.stdout)
                         failed = True
                         if stop_on_error: exit(1)
-                    if res.stderr != test.build_expected_stderr:
+                    if res.stderr != test.d["expected_build_stderr"]:
                         cprint('red', 'default', f'[FAILED]')
-                        expect_output("stderr", test.build_expected_stderr, res.stderr)
+                        expect_output("stderr", test.d["expected_build_stderr"], res.stderr)
                         failed = True
                         if stop_on_error: exit(1)
                     if not failed:
@@ -422,9 +439,9 @@ def main():
                 ans = input(prompt_msg)
 
                 if ans.lower() == "y":
-                    tests[test_name].expected_stdout = res.stdout
-                    tests[test_name].expected_stderr = res.stderr
-                    tests[test_name].expected_returncode = res.returncode
+                    tests[test_name].d["expected_stdout"] = res.stdout
+                    tests[test_name].d["expected_stderr"] = res.stderr
+                    tests[test_name].d["expected_returncode"] = res.returncode
                     tests[test_name].save_expected()
                     cprint("green", "default", '[SUCCESS] Recorded expected behaviour')
                 else:
@@ -436,16 +453,16 @@ def main():
                 cprint(f"green", "default", f"+ Recording expected build behaviour for '{test_name}'...")
                 test = tests[test_name]
 
-                if len(test.build_stdin) > 0:
-                    logger.info(f"Test already has build_input '{test.build_stdin}'...")
+                if len(test.d["build_stdin"]) > 0:
+                    logger.info(f"Test already has build_input '{test.d['build_stdin']}'...")
                     ans = input("Do you want to change the build_input? [y/N]")
                     if ans.lower() == 'y':
-                        test.build_stdin = input("What is the input passed? ")
+                        test.d["build_stdin"] = input("What is the input passed? ")
                     else:
                         cprint('yellow', 'default', '[SKIP]')
                         continue
                 else:
-                    test.build_stdin = input("What is the input passed? ")
+                    test.d["build_stdin"] = input("What is the input passed? ")
 
                 cmd = shlex.split(get_cmd_substituted(BUILD_CMD, tests, test_name))
                 build_stdin_list = test.get_build_stdin_list()
@@ -461,9 +478,9 @@ def main():
                 ans = input(prompt_msg)
 
                 if ans.lower() == "y":
-                    tests[test_name].build_expected_stdout = res.stdout
-                    tests[test_name].build_expected_stderr = res.stderr
-                    tests[test_name].build_expected_returncode = res.returncode
+                    tests[test_name].d["expected_build_stdout"] = res.stdout
+                    tests[test_name].d["expected_build_stderr"] = res.stderr
+                    tests[test_name].d["expected_build_returncode"] = res.returncode
                     tests[test_name].save_expected()
                     cprint('green', 'default', '[SUCCESS] Recorded expected behaviour')
                 else:
