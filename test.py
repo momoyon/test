@@ -98,8 +98,8 @@ def get_env_variables():
 
 def get_cmd_substituted(cmd, tests, current_test):
     assert current_test in tests, "The test that you passed is not in the tests map!"
-    cmd = cmd.replace(f"{test_name}", tests[current_test].name)
-    cmd = cmd.replace(f"{src_suffix}", SRC_SUFFIX)
+    cmd = cmd.replace("{test_name}", tests[current_test].name)
+    cmd = cmd.replace("{src_suffix}", SRC_SUFFIX)
 
     return cmd
 
