@@ -198,12 +198,6 @@ class Test:
                         else:
                             self.d[current_section] += data + "\n"
 
-    def get_expected_filename(self, name):
-        if name not in [ "in", "out", "err", "code", "build.in", "build.out", "build.err", "build.code" ]:
-            raise Exception("Please pass a valid name")
-
-        return f".{self.name}.{name}.expected"
-
     def get_build_stdin_list(self):
             build_input_array = self.d["build_stdin"].split(sep=' ')
             for i in range(len(build_input_array)-1, -1, -1):
