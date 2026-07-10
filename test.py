@@ -103,6 +103,8 @@ def expect_output(expected_name: str, expected: str, got: str):
     print("<<<")
 
 
+TEST_SECTION_HEADER_BEG = '[['
+TEST_SECTION_HEADER_END = ']]'
 class Test:
     def __init__(self, name):
         self.name = name
@@ -138,7 +140,7 @@ class Test:
         filename: str = f"{self.name}.test"
         f = open(filename, "w")
         def write_section(section: str):
-            f.write(f"[{section}]\n")
+            f.write(f"{TEST_SECTION_HEADER_BEG}{section}{TEST_SECTION_HEADER_END}\n")
             f.write(f"{self.d[section]}\n")
 
         write_section("stdin")
@@ -164,7 +166,7 @@ class Test:
                 line = line.rstrip('\n')
                 if len(line) <= 0: continue
                 # print(f"LINE: `{line}`") continue
-                if line[0] == '[' and len(line) >= 1 and line[1] == '[':
+                if line.startswith(TEST_SECTION_HEADER_BEG) and line.endswith(TEST_SECTION_HEADER_END):
                     section: str = line.removeprefix('[[').removesuffix(']]')
                     # print(f"Got section `{section}`")
                     current_section = section
