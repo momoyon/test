@@ -393,6 +393,12 @@ def main():
                     expect_output("stdout", test.d['expected_stdout'], res.stdout)
                     if stop_on_error: exit(1)
                     else: continue
+
+                if res.stderr:
+                    log_verbose(f"STDERR: {res.stderr}")
+                if res.stdout:
+                    log_verbose(f"STDOUT: {res.stdout}")
+
                 passing_tests_count += 1
                 cprint('green', 'default', '[PASS]')
 
