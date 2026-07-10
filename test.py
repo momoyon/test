@@ -6,6 +6,10 @@ import shlex
 
 import sys
 
+# FLAG_VALUES
+verbose_output = False
+stop_on_error  = False
+
 colors_table = {
     'BLACK':   [ '30', '40' ],
     'RED':     [ '31', '41' ],
@@ -44,6 +48,9 @@ def log_warn(msg, file=sys.stdout, *args, **kwargs):
     cprint('yellow', 'default', f"WARNING: {msg}", file=file, **kwargs)
 
 def log_verbose(msg, file=sys.stdout, *args, **kwargs):
+    global verbose_output
+    if not verbose_output:
+        return
     cprint('magenta', 'default', f"VERBOSE: {msg}", file=file, **kwargs)
 
 # TODO: Implement or Use a third-party diff-ing library
@@ -157,8 +164,8 @@ class Test:
                 line = line.rstrip('\n')
                 if len(line) <= 0: continue
                 # print(f"LINE: `{line}`") continue
-                if line[0] == '[':
-                    section: str = line.removeprefix('[').removesuffix(']')
+                if line[0] == '[' and len(line) >= 1 and line[1] == '[':
+                    section: str = line.removeprefix('[[').removesuffix(']]')
                     # print(f"Got section `{section}`")
                     current_section = section
                 else:
@@ -212,6 +219,7 @@ def hhelp():
           ''')
 
 def main():
+    global verbose_output, stop_on_error
     program = sys.argv.pop(0)
 
     if len(sys.argv) <= 0:
@@ -221,9 +229,6 @@ def main():
         exit(1)
 
 
-    # FLAG_VALUES
-    verbose_output = False
-    stop_on_error  = False
 
     subcmds = []
 
@@ -265,7 +270,7 @@ def main():
     check_crucial_envvar(SRC_SUFFIX, "SRC_SUFFIX")
 
     os.chdir(TESTS_DIR)
-    if verbose_output: log_info(f"Changed cwd to {os.getcwd()}")
+    log_verbose(f"Changed cwd to {os.getcwd()}")
 
     tests = {}
 
@@ -351,11 +356,11 @@ def main():
                         passing_tests_count += 1
                         cprint('green', 'default', "[PASS] ")
                     o = False
-                    if verbose_output and res.stdout:
-                        print(f"{res.stdout}")
+                    if res.stdout:
+                        log_verbose(f"{res.stdout}")
                         o = True
-                    if verbose_output and res.stderr:
-                        print(f"{res.stderr}")
+                    if res.stderr:
+                        log_verbose(f"{res.stderr}")
                         o = True
                     if not o: print('')
 
